@@ -13,11 +13,10 @@ quoted_string = _{ "\"" ~ string ~ "\"" }
 hash_index = _{ "[" ~ quoted_string ~ "]" }
 
 path_entry = _{
-    "." ~ identifier ~ (array_index | hash_index)*
+    identifier ~ (array_index | hash_index)*
 }
 path = _{
-    (path_entry+) | ("." ~ (array_index | hash_index))
-    
+    "." ~ identifier? ~ (array_index | hash_index)* ~ ("." ~ path_entry)*
 }
 
 query_entry = _{
