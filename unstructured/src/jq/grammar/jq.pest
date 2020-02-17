@@ -16,11 +16,17 @@ path_entry = _{
     identifier ~ (array_index | hash_index)*
 }
 path = _{
-    "." ~ identifier? ~ (array_index | hash_index)* ~ ("." ~ path_entry)*
+    ("." ~ identifier? ~ (array_index | hash_index)* ~ ("." ~ path_entry)*)
+}
+
+function = {
+    "length"
 }
 
 query_entry = _{
     path
+    |
+    function
 }
 query = _{
     SOI ~ (

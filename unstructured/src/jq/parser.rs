@@ -22,6 +22,21 @@ impl Document {
                         .map_err(|e| format!("Parse failure: {}!", e))?;
                     result = &result[index];
                 },
+                Rule::function => {
+                    let key = selector.as_str();
+                    match key {
+                        "length" => {
+                            match &result {
+                                Document::Seq(l) => {
+                                    let a : u32 = l.len() as u32;
+                                    result = &Document::U32(1);
+                                },
+                                _ => {},
+                            }
+                        },
+                        _ => return Err(format!("Invalid selector {}", selector)),
+                    }
+                },
                 Rule::EOI => return Ok(result),
                 _ => return Err(format!("Invalid selector {}", selector)),
             };
@@ -82,5 +97,7 @@ mod test {
         assert_eq!(doc.jq(".val").unwrap().clone(), "some_val".to_string());
         assert_eq!(doc.jq(".child.vals[0]").unwrap().clone(), 4 as u64);
         assert_eq!(doc.jq(".child | .vals[0]").unwrap().clone(), 4 as u64);
+        assert_eq!(doc.jq(".child | .vals | .[0]").unwrap().clone(), 4 as u64);
+        assert_eq!(doc.jq(".child | .vals | length").unwrap().clone(), 3 as u64);
     }
 }
