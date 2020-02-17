@@ -1,0 +1,14 @@
+WHITESPACE = _{ " " }
+dot = _{ "." }
+char = _{
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+string = @{ char* }
+quoted_string = _{ "\"" ~ string ~ "\"" }
+identifier = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC+? }
+number = @{ ASCII_DIGIT+ }
+array_index = _{ "[" ~ number ~ "]" }
+hash_key = _{ "[" ~ string ~ "]" }
+path = _{ SOI ~ ("." ~ (identifier | (array_index | hash_key)+))+ | "." ~ EOI }

@@ -124,6 +124,7 @@ mod de;
 mod from;
 mod index;
 mod selector;
+mod jq;
 mod ser;
 
 #[derive(Clone, Debug)]

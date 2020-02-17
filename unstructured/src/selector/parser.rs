@@ -51,7 +51,12 @@ mod test {
         ];
 
         let result = Document::filter(&docs, "[1].val | [0].vals.[1:3]")?;
-        println!("{}", result);
+        let mut rdoc = Document::new(TestStruct {
+            val: "Another".to_string(),
+            vals: vec![2, 3],
+        })
+        .unwrap();
+        assert_eq!(result, rdoc);
         Ok(())
     }
 }
@@ -113,15 +118,6 @@ macro_rules! parse_range {
     };
 }
 
-macro_rules! parse_doc_index {
-    ($pair:ident) => {
-        $pair
-            .as_str()
-            .parse::<usize>()
-            .map_err(|e| format!("Parse failure: {}!", e))?
-    };
-}
-
 #[derive(Parser)]
 #[grammar = "selector/grammar/selector.pest"]
 struct SelectorParser;
@@ -168,7 +164,8 @@ impl Document {
             for selector in selection {
                 match selector.as_rule() {
                     Rule::doc_index => {
-                        let index = parse_doc_index!(selector);
+                        let index = selector.as_str().parse::<usize>()
+                            .map_err(|e| format!("Parse failure: {}!", e))?;
                         if index >= docs.len() {
                             return Err(format!("Document index of {} is out of bounds", index));
                         } else {
