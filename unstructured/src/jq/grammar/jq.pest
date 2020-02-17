@@ -15,10 +15,16 @@ hash_index = _{ "[" ~ quoted_string ~ "]" }
 path_entry = _{
     "." ~ identifier ~ (array_index | hash_index)*
 }
-path = _{ 
-    SOI ~ 
-    (
-        (path_entry+) | ("." ~ (array_index | hash_index))
-    )
-    ~ EOI
+path = _{
+    (path_entry+) | ("." ~ (array_index | hash_index))
+    
+}
+
+query_entry = _{
+    path
+}
+query = _{
+    SOI ~ (
+        query_entry ~ ("|" ~ query_entry)*
+    ) ~ EOI
 }

@@ -9,7 +9,7 @@ struct JqParser;
 
 impl Document {
     pub fn jq<'a>(&'a self, sel: &str) -> Result<&'a Document, String> {
-        let selection = JqParser::parse(Rule::path, sel)
+        let selection = JqParser::parse(Rule::query, sel)
             .map_err(|e| e.to_string())?;
         let mut result = self;
         dbg!(&selection);
@@ -30,7 +30,7 @@ impl Document {
     }
 
     pub fn jq_mut<'a>(&'a mut self, sel: &str) -> Result<&'a mut Document, String> {
-        let selection = JqParser::parse(Rule::path, sel).map_err(|e| e.to_string())?;
+        let selection = JqParser::parse(Rule::query, sel).map_err(|e| e.to_string())?;
         let mut result = self;
         for selector in selection {
             match selector.as_rule() {
@@ -68,8 +68,8 @@ mod test {
 
     #[test]
     fn test_path() {
-        // let doc = Document::new(vec![1, 2, 3]).unwrap();
-        // assert_eq!(doc.jq(".[0]").unwrap().clone(), Document::I32(1));
+        let doc = Document::new(vec![1, 2, 3]).unwrap();
+        assert_eq!(doc.jq(".[0]").unwrap().clone(), Document::I32(1));
 
         let doc = Document::new(TestStruct {
             val: "some_val".to_string(),
@@ -79,7 +79,8 @@ mod test {
                 vals: vec![4, 5, 6]
             }
         }).unwrap();
-        // assert_eq!(doc.jq(".val").unwrap().clone(), "some_val".to_string());
+        assert_eq!(doc.jq(".val").unwrap().clone(), "some_val".to_string());
         assert_eq!(doc.jq(".child.vals[0]").unwrap().clone(), 4 as u64);
+        assert_eq!(doc.jq(".child | .vals[0]").unwrap().clone(), 4 as u64);
     }
 }
