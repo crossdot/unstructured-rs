@@ -1,15 +1,17 @@
 use crate::*;
 use pest::Parser;
 use pest_derive::*;
+use pest::iterators::Pair;
 use pest::iterators::Pairs;
+use pest::iterators::FlatPairs;
 
 #[derive(Parser)]
 #[grammar = "jq/grammar/jq.pest"]
 struct JqParser;
 
-fn jq_find(doc: &Document, selection: Pairs<Rule>) -> Result<Document, String> {
+fn jq_find(doc: &Document, selection: Vec<Pair<Rule>>) -> Result<Document, String> {
     let mut current = doc;
-
+    let mut current_index = 0;
     for selector in selection {
         match selector.as_rule() {
             Rule::number => {
@@ -24,7 +26,7 @@ fn jq_find(doc: &Document, selection: Pairs<Rule>) -> Result<Document, String> {
             Rule::function_length => {
                 match current {
                     Document::Seq(l) => {
-                        return Ok(l.len().into());
+                        return jq_find(&l.len().into(), vec![])
                     }
                     _ => {}
                 }
@@ -41,7 +43,12 @@ fn jq_find(doc: &Document, selection: Pairs<Rule>) -> Result<Document, String> {
 impl Document {
     pub fn jq(self: &Document, sel: &str) -> Result<Document, String> {
         let selection = JqParser::parse(Rule::query, sel).map_err(|e| e.to_string())?;
-        jq_find(self, selection)
+        let si = selection;
+
+        // let si = selection.clone().flatten();
+        let si : Vec<_> = si.map(|p| p).collect();
+
+        jq_find(self, si)
     }
 }
 
