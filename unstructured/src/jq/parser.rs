@@ -1,42 +1,47 @@
 use crate::*;
 use pest::Parser;
 use pest_derive::*;
+use pest::iterators::Pairs;
 
 #[derive(Parser)]
 #[grammar = "jq/grammar/jq.pest"]
 struct JqParser;
 
+fn jq_find(doc: &Document, selection: Pairs<Rule>) -> Result<Document, String> {
+    let mut current = doc;
+
+    for selector in selection {
+        match selector.as_rule() {
+            Rule::number => {
+                let index = selector.as_str().parse::<usize>()
+                    .map_err(|e| format!("Parse failure: {}!", e))?;
+                current = &current[index];
+            }
+            Rule::string | Rule::identifier => {
+                let index = selector.as_str();
+                current = &current[index];
+            }
+            Rule::function_length => {
+                match current {
+                    Document::Seq(l) => {
+                        return Ok(l.len().into());
+                    }
+                    _ => {}
+                }
+            }
+            Rule::EOI => {
+                return Ok(current.clone())
+            }
+            _ => return Err(format!("Invalid selector {}", selector)),
+        }
+    }
+    Ok(current.clone())
+}
+
 impl Document {
     pub fn jq(self: &Document, sel: &str) -> Result<Document, String> {
-        let mut current = self.clone();
-
         let selection = JqParser::parse(Rule::query, sel).map_err(|e| e.to_string())?;
-        for selector in selection {
-            match selector.as_rule() {
-                Rule::number => {
-                    let index = selector.as_str().parse::<usize>()
-                        .map_err(|e| format!("Parse failure: {}!", e))?;
-                    current = current[index].clone();
-                }
-                Rule::string | Rule::identifier => {
-                    let index = selector.as_str();
-                    current = current[index].clone();
-                }
-                Rule::function_length => {
-                    match current {
-                        Document::Seq(l) => {
-                            current = l.len().into();
-                        }
-                        _ => {}
-                    }
-                }
-                Rule::EOI => {
-                    return Ok(current)
-                }
-                _ => return Err(format!("Invalid selector {}", selector)),
-            }
-        }
-        Ok(current)
+        jq_find(self, selection)
     }
 }
 
