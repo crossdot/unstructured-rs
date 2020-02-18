@@ -2,14 +2,12 @@ use crate::*;
 use pest::Parser;
 use pest_derive::*;
 use pest::iterators::Pair;
-use pest::iterators::Pairs;
-use pest::iterators::FlatPairs;
 
 #[derive(Parser)]
 #[grammar = "jq/grammar/jq.pest"]
 struct JqParser;
 
-fn jq_find(doc: &Document, selection: Vec<Pair<Rule>>) -> Result<Document, String> {
+fn jq_find(doc: &Document, selection: &[Pair<Rule>]) -> Result<Document, String> {
     let mut current = doc;
     let mut current_index = 0;
     for selector in selection {
@@ -26,7 +24,7 @@ fn jq_find(doc: &Document, selection: Vec<Pair<Rule>>) -> Result<Document, Strin
             Rule::function_length => {
                 match current {
                     Document::Seq(l) => {
-                        return jq_find(&l.len().into(), vec![])
+                        return jq_find(&l.len().into(), &selection[current_index..])
                     }
                     _ => {}
                 }
@@ -36,6 +34,7 @@ fn jq_find(doc: &Document, selection: Vec<Pair<Rule>>) -> Result<Document, Strin
             }
             _ => return Err(format!("Invalid selector {}", selector)),
         }
+        current_index = current_index + 1;
     }
     Ok(current.clone())
 }
@@ -43,12 +42,8 @@ fn jq_find(doc: &Document, selection: Vec<Pair<Rule>>) -> Result<Document, Strin
 impl Document {
     pub fn jq(self: &Document, sel: &str) -> Result<Document, String> {
         let selection = JqParser::parse(Rule::query, sel).map_err(|e| e.to_string())?;
-        let si = selection;
-
-        // let si = selection.clone().flatten();
-        let si : Vec<_> = si.map(|p| p).collect();
-
-        jq_find(self, si)
+        let selection_vec : Vec<_> = selection.map(|p| p).collect();
+        jq_find(self, &selection_vec[..])
     }
 }
 
