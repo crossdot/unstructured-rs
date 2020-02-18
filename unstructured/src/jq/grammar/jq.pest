@@ -19,14 +19,12 @@ path = _{
     ("." ~ identifier? ~ (array_index | hash_index)* ~ ("." ~ path_entry)*)
 }
 
-function = {
-    "length"
-}
+function_length = { "length" }
 
 query_entry = _{
     path
     |
-    function
+    function_length
 }
 query = _{
     SOI ~ (

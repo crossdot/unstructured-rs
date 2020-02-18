@@ -1,66 +1,42 @@
 use crate::*;
 use pest::Parser;
 use pest_derive::*;
-use std::collections::BTreeMap;
 
 #[derive(Parser)]
 #[grammar = "jq/grammar/jq.pest"]
 struct JqParser;
 
 impl Document {
-    pub fn jq<'a>(&'a self, sel: &str) -> Result<&'a Document, String> {
-        let selection = JqParser::parse(Rule::query, sel)
-            .map_err(|e| e.to_string())?;
-        let mut result = self;
-        dbg!(&selection);
-        for selector in selection {
-            match selector.as_rule() {
-                Rule::identifier => result = &result[selector.as_str()],
-                Rule::string => result = &result[selector.as_str()],
-                Rule::number => {
-                    let index = selector.as_str().parse::<usize>()
-                        .map_err(|e| format!("Parse failure: {}!", e))?;
-                    result = &result[index];
-                },
-                Rule::function => {
-                    let key = selector.as_str();
-                    match key {
-                        "length" => {
-                            match &result {
-                                Document::Seq(l) => {
-                                    let a : u32 = l.len() as u32;
-                                    result = &Document::U32(1);
-                                },
-                                _ => {},
-                            }
-                        },
-                        _ => return Err(format!("Invalid selector {}", selector)),
-                    }
-                },
-                Rule::EOI => return Ok(result),
-                _ => return Err(format!("Invalid selector {}", selector)),
-            };
-        }
-        Ok(result)
-    }
+    pub fn jq(self: &Document, sel: &str) -> Result<Document, String> {
+        let mut current = self.clone();
 
-    pub fn jq_mut<'a>(&'a mut self, sel: &str) -> Result<&'a mut Document, String> {
         let selection = JqParser::parse(Rule::query, sel).map_err(|e| e.to_string())?;
-        let mut result = self;
         for selector in selection {
             match selector.as_rule() {
-                Rule::identifier => result = &mut result[selector.as_str()],
-                Rule::string => result = &mut result[selector.as_str()],
                 Rule::number => {
                     let index = selector.as_str().parse::<usize>()
                         .map_err(|e| format!("Parse failure: {}!", e))?;
-                    result = &mut result[index];
-                },
-                Rule::EOI => return Ok(result),
+                    current = current[index].clone();
+                }
+                Rule::string | Rule::identifier => {
+                    let index = selector.as_str();
+                    current = current[index].clone();
+                }
+                Rule::function_length => {
+                    match current {
+                        Document::Seq(l) => {
+                            current = l.len().into();
+                        }
+                        _ => {}
+                    }
+                }
+                Rule::EOI => {
+                    return Ok(current)
+                }
                 _ => return Err(format!("Invalid selector {}", selector)),
-            };
+            }
         }
-        Ok(result)
+        Ok(current)
     }
 }
 
@@ -84,7 +60,7 @@ mod test {
     #[test]
     fn test_path() {
         let doc = Document::new(vec![1, 2, 3]).unwrap();
-        assert_eq!(doc.jq(".[0]").unwrap().clone(), Document::I32(1));
+        assert_eq!(doc.jq(".[0]").unwrap(), 1);
 
         let doc = Document::new(TestStruct {
             val: "some_val".to_string(),

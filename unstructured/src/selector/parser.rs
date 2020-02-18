@@ -51,7 +51,7 @@ mod test {
         ];
 
         let result = Document::filter(&docs, "[1].val | [0].vals.[1:3]")?;
-        let mut rdoc = Document::new(TestStruct {
+        let rdoc = Document::new(TestStruct {
             val: "Another".to_string(),
             vals: vec![2, 3],
         })

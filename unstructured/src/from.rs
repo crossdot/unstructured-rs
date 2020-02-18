@@ -47,6 +47,18 @@ from_imp! {
     }
 }
 
+impl From<usize> for Document {
+    fn from(n: usize) -> Self {
+        Document::U64(n as u64)
+    }
+}
+
+impl From<isize> for Document {
+    fn from(n: isize) -> Self {
+        Document::I64(n as i64)
+    }
+}
+
 impl From<&usize> for Document {
     fn from(n: &usize) -> Self {
         Document::U64(*n as u64)
