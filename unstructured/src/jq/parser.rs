@@ -7,7 +7,7 @@ use pest::iterators::Pair;
 #[grammar = "jq/grammar/jq.pest"]
 struct JqParser;
 
-fn jq_find(doc: &Document, selection: &[Pair<Rule>]) -> Result<Document, String> {
+fn jq_find(doc: &Document, selection: &[Pair<Rule>]) -> Result<Vec<Document>, String> {
     let mut current = doc;
     let mut current_index = 0;
     for selector in selection {
@@ -30,20 +30,30 @@ fn jq_find(doc: &Document, selection: &[Pair<Rule>]) -> Result<Document, String>
                 }
             }
             Rule::EOI => {
-                return Ok(current.clone())
+                return Ok(vec![current.clone()])
             }
             _ => return Err(format!("Invalid selector {}", selector)),
         }
         current_index = current_index + 1;
     }
-    Ok(current.clone())
+    Ok(vec![current.clone()])
+}
+
+fn jq_find_all(doc_list: &[&Document], selection: &[Pair<Rule>]) -> Result<Vec<Document>, String> {
+    let mut result : Vec<Document> = vec![];
+    for doc in doc_list {
+        let mut piece = jq_find(doc, selection)?;
+        result.append(&mut piece);
+    }
+    Ok(result)
 }
 
 impl Document {
-    pub fn jq(self: &Document, sel: &str) -> Result<Document, String> {
+    pub fn jq(self: &Document, sel: &str) -> Result<Vec<Document>, String> {
         let selection = JqParser::parse(Rule::query, sel).map_err(|e| e.to_string())?;
         let selection_vec : Vec<_> = selection.map(|p| p).collect();
-        jq_find(self, &selection_vec[..])
+        let v : Vec<&Document> = vec![self];
+        jq_find_all(&v, &selection_vec[..])
     }
 }
 
@@ -67,7 +77,7 @@ mod test {
     #[test]
     fn test_path() {
         let doc = Document::new(vec![1, 2, 3]).unwrap();
-        assert_eq!(doc.jq(".[0]").unwrap(), 1);
+        assert_eq!(doc.jq(".[0]").unwrap(), vec![1]);
 
         let doc = Document::new(TestStruct {
             val: "some_val".to_string(),
@@ -77,10 +87,10 @@ mod test {
                 vals: vec![4, 5, 6]
             }
         }).unwrap();
-        assert_eq!(doc.jq(".val").unwrap().clone(), "some_val".to_string());
-        assert_eq!(doc.jq(".child.vals[0]").unwrap().clone(), 4 as u64);
-        assert_eq!(doc.jq(".child | .vals[0]").unwrap().clone(), 4 as u64);
-        assert_eq!(doc.jq(".child | .vals | .[0]").unwrap().clone(), 4 as u64);
-        assert_eq!(doc.jq(".child | .vals | length").unwrap().clone(), 3 as u64);
+        assert_eq!(doc.jq(".val").unwrap().clone(), vec!["some_val".to_string()]);
+        assert_eq!(doc.jq(".child.vals[0]").unwrap().clone(), vec![4 as u64]);
+        assert_eq!(doc.jq(".child | .vals[0]").unwrap().clone(), vec![4 as u64]);
+        assert_eq!(doc.jq(".child | .vals | .[0]").unwrap().clone(), vec![4 as u64]);
+        assert_eq!(doc.jq(".child | .vals | length").unwrap().clone(), vec![3 as u64]);
     }
 }
