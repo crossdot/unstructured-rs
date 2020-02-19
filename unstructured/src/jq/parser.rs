@@ -21,6 +21,15 @@ fn jq_find(doc: &Document, selection: &[Pair<Rule>]) -> Result<Vec<Document>, St
                 let index = selector.as_str();
                 current = &current[index];
             }
+            Rule::every_index => {
+                match current {
+                    Document::Seq(l) => {
+                        let s : Vec<&Document> = l.into_iter().map(|e| e).collect();
+                        return jq_find_all(&s, &selection[current_index..])
+                    }
+                    _ => {}
+                }
+            }
             Rule::function_length => {
                 match current {
                     Document::Seq(l) => {
@@ -92,5 +101,6 @@ mod test {
         assert_eq!(doc.jq(".child | .vals[0]").unwrap().clone(), vec![4 as u64]);
         assert_eq!(doc.jq(".child | .vals | .[0]").unwrap().clone(), vec![4 as u64]);
         assert_eq!(doc.jq(".child | .vals | length").unwrap().clone(), vec![3 as u64]);
+        assert_eq!(doc.jq(".child.vals[]").unwrap().clone(), vec![4 as u64, 5 as u64, 6 as u64]);
     }
 }

@@ -11,20 +11,25 @@ array_index = _{ "[" ~ number ~ "]" }
 string = @{ char* }
 quoted_string = _{ "\"" ~ string ~ "\"" }
 hash_index = _{ "[" ~ quoted_string ~ "]" }
+every_index = { "[" ~ "]" }
 
+some_index = _{array_index | hash_index | every_index}
 path_entry = _{
-    identifier ~ (array_index | hash_index)*
+    identifier ~ some_index*
 }
 path = _{
-    ("." ~ identifier? ~ (array_index | hash_index)* ~ ("." ~ path_entry)*)
+    ("." ~ identifier? ~ some_index* ~ ("." ~ path_entry)*)
 }
 
 function_length = { "length" }
+some_function = _{
+    function_length
+}
 
 query_entry = _{
     path
     |
-    function_length
+    some_function
 }
 query = _{
     SOI ~ (
